@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UPF · Usage Report Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#131e30;--line:#2b3950;--text:#edf3ff;--muted:#a5b5cd;--cyan:#53d6cb;--blue:#638dff;--red:#ff8b92;--gold:#ffc76b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 system-ui,sans-serif}main{max-width:1180px;margin:auto;padding:38px 24px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}.eyebrow{color:var(--cyan);font-size:12px;letter-spacing:2px;font-weight:700}h1{font-size:clamp(26px,4vw,38px);margin:8px 0}h2{font-size:18px;margin:0}p{color:var(--muted);margin:8px 0}.badge{border:1px solid var(--line);border-radius:30px;padding:6px 14px;font-size:12px;white-space:nowrap}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;margin-top:20px}.controls{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}.choice{flex:1;min-width:200px;text-align:left;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:14px 18px;cursor:pointer}.choice[aria-pressed=true]{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan)}button{font:inherit}button:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:4px}.choice strong{display:block}.choice span{font-size:13px;color:var(--muted)}#run{background:var(--cyan);color:#071b23;border:0;border-radius:10px;font-weight:750;padding:16px 26px;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.status-line{display:flex;justify-content:space-between;gap:12px;margin-top:18px;color:var(--muted);font-size:13px}progress{width:100%;height:6px;accent-color:var(--cyan)}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}.stat{padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:12px}.stat span{display:block;color:var(--muted);font-size:12px}.stat strong{font-size:30px;font-variant-numeric:tabular-nums}.slow{color:var(--gold)}.drop{color:var(--red)}.chart-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.legend{font-size:12px;color:var(--muted)}.legend b{color:var(--cyan)}.legend i{color:var(--blue);font-style:normal}svg{display:block;width:100%;height:auto;margin-top:14px}svg text{font:12px system-ui;fill:var(--muted)}.details{display:grid;grid-template-columns:1fr 1fr;gap:20px}.summary-grid{display:grid;grid-template-columns:1fr auto;gap:10px;color:var(--muted);margin-top:16px}.summary-grid strong{color:var(--text);font-variant-numeric:tabular-nums}#balance{margin-top:18px;color:var(--cyan)}.table-wrap{max-height:330px;overflow:auto;margin-top:14px}table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}th,td{text-align:right;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}th{position:sticky;top:0;background:var(--panel);color:var(--muted);font-weight:500}th:first-child,td:first-child{text-align:left}.OK{color:var(--cyan)}.SLOW{color:var(--gold)}.DROPPED{color:var(--red)}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:var(--muted);max-height:280px;overflow:auto}summary{cursor:pointer}footer{color:var(--muted);font-size:12px;margin:24px 0}@media(max-width:760px){main{padding:20px 14px}header{display:block}.badge{display:inline-block;margin-top:8px}.stats{grid-template-columns:repeat(2,1fr)}.details{grid-template-columns:1fr}.panel{padding:16px}#run{width:100%}}
+</style>
+<main>
+  <header><div><div class="eyebrow">UPF / USAGE REPORT LAB</div><h1>Khi tải tăng, report chậm ở đâu?</h1><p>Quan sát thời gian chờ và xử lý từ mô phỏng C/pthread.</p></div><span class="badge">Mô phỏng · Không phải UPF thật</span></header>
+  <section class="panel" aria-label="Điều khiển mô phỏng">
+    <div class="controls">
+      <button class="choice" data-mode="normal" aria-pressed="true"><strong>01 · Normal</strong><span>Tạo mỗi 200 ms → xử lý 50 ms</span></button>
+      <button class="choice" data-mode="overload" aria-pressed="false"><strong>02 · Overload</strong><span>Tạo mỗi 50 ms → xử lý 200 ms</span></button>
+      <button id="run">▶ Chạy mô phỏng</button>
+    </div>
+    <p id="explanation">Tốc độ đến khoảng 5 report/s, khả năng xử lý khoảng 20 report/s. Queue thường ít tích tụ.</p>
+    <div class="status-line"><span id="status" role="status" aria-live="polite">Sẵn sàng · 30 report · queue 16 · ngưỡng 300 ms</span><span id="progress-label">0 / 30 đã có kết quả</span></div>
+    <progress id="progress" max="30" value="0" aria-label="Số report đã có kết quả"></progress>
+  </section>
+  <div class="stats">
+    <div class="stat"><span>ĐÃ XỬ LÝ</span><strong id="processed">0</strong></div>
+    <div class="stat"><span>CHẬM · SLOW</span><strong id="slow" class="slow">0</strong></div>
+    <div class="stat"><span>BỊ BỎ · DROPPED</span><strong id="dropped" class="drop">0</strong></div>
+    <div class="stat"><span>TỔNG ĐỘ TRỄ TB · MS</span><strong id="average">—</strong></div>
+  </div>
+  <section class="panel">
+    <div class="chart-head"><h2>Độ trễ theo report</h2><div class="legend"><b>■ Chờ queue</b> &nbsp; <i>■ Xử lý</i> &nbsp; <span class="slow">┄ Ngưỡng 300 ms</span></div></div>
+    <p>Mỗi cột = thời gian chờ + xử lý. × là report bị bỏ, không có số đo độ trễ.</p>
+    <svg id="chart" viewBox="0 0 1000 290" role="img" aria-label="Biểu đồ độ trễ đo từ các report"></svg>
+    <p id="chart-note">Chạy một kịch bản để xem số đo thực tế. Trục dọc tự điều chỉnh theo dữ liệu.</p>
+  </section>
+  <div class="details">
+    <section class="panel"><h2>Kết quả từng report</h2><p>Thứ tự nhận kết quả; dropped được tách riêng với SLOW.</p><div class="table-wrap"><table><thead><tr><th>ID</th><th>Chờ (ms)</th><th>Xử lý (ms)</th><th>Tổng (ms)</th><th>Trạng thái</th></tr></thead><tbody id="rows"><tr><td colspan="5">Chưa có report.</td></tr></tbody></table></div></section>
+    <section class="panel"><h2>Tổng kết lần chạy</h2><p id="summary-note">Có sau khi producer và consumer kết thúc.</p><div class="summary-grid"><span>Report đã tạo</span><strong id="created">—</strong><span>Độ trễ tổng TB / lớn nhất</span><strong id="total-summary">—</strong><span>Chờ queue TB / lớn nhất</span><strong id="wait-summary">—</strong><span>Độ dài queue lớn nhất</span><strong id="queue-summary">—</strong></div><div id="balance">Chưa kiểm tra bộ đếm.</div><p>SLOW: xử lý thành công nhưng tổng độ trễ vượt 300 ms. DROPPED: queue đầy nên bỏ report mới.</p></section>
+  </div>
+  <details class="panel"><summary>Log gốc từ chương trình C</summary><pre id="log">Chưa chạy.</pre></details>
+  <footer>CLOCK_MONOTONIC · Số đo thực tế có thể lệch do lịch chạy của hệ điều hành. Demo phát hiện chậm, chưa tự khắc phục; không có bản tin PFCP hay gửi report qua mạng.</footer>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let mode = 'normal', reports = [], finished = false;
+const fmt = value => value.toLocaleString('vi-VN', {maximumFractionDigits: 1, minimumFractionDigits: 1});
+document.querySelectorAll('.choice').forEach(button => button.addEventListener('click', () => {
+  mode = button.dataset.mode;
+  document.querySelectorAll('.choice').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+  $('explanation').textContent = mode === 'normal'
+    ? 'Tốc độ đến khoảng 5 report/s, khả năng xử lý khoảng 20 report/s. Queue thường ít tích tụ.'
+    : 'Tốc độ đến khoảng 20 report/s, khả năng xử lý khoảng 5 report/s. Queue tích tụ, thời gian chờ tăng rồi có thể đầy.';
+}));
+function draw() {
+  const max = Math.max(500, ...reports.filter(r => r.total !== undefined).map(r => Math.ceil(r.total / 500) * 500));
+  const baseline = 250, height = 210, scale = height / max;
+  let svg = '';
+  for (let i = 0; i <= 4; i++) {
+    const value = max * i / 4, y = baseline - value * scale;
+    svg += `<line x1="62" y1="${y}" x2="988" y2="${y}" stroke="#2b3950"/><text x="52" y="${y + 4}" text-anchor="end">${value}</text>`;
+  }
+  svg += '<text x="16" y="20">ms</text>';
+  const thresholdY = baseline - 300 * scale;
+  svg += `<line x1="62" y1="${thresholdY}" x2="988" y2="${thresholdY}" stroke="#ffc76b" stroke-dasharray="6 5"/><text x="986" y="${thresholdY - 6}" text-anchor="end" style="fill:#ffc76b">300 ms</text>`;
+  for (let id = 1; id <= 30; id++) {
+    const x = 69 + (id - 1) * 30.5, r = reports.find(item => item.id === id);
+    svg += `<text x="${x + 10}" y="275" text-anchor="middle">${id}</text>`;
+    if (!r) continue;
+    if (r.status === 'DROPPED') {
+      svg += `<text x="${x + 10}" y="244" text-anchor="middle" style="fill:#ff8b92;font-size:22px"><title>Report #${id} bị bỏ</title>×</text>`;
+    } else {
+      svg += `<g><title>Report #${id}: chờ ${fmt(r.queue)} ms, xử lý ${fmt(r.processing)} ms, tổng ${fmt(r.total)} ms — ${r.status}</title><rect x="${x}" y="${baseline - r.queue * scale}" width="20" height="${r.queue * scale}" fill="#53d6cb"/><rect x="${x}" y="${baseline - r.total * scale}" width="20" height="${r.processing * scale}" fill="#638dff"/></g>`;
+    }
+  }
+  $('chart').innerHTML = svg;
+}
+function handle(event) {
+  if (event.type === 'log') { $('log').textContent += event.line + '\n'; return; }
+  if (event.type === 'error') throw new Error(event.message);
+  if (event.type === 'report') {
+    reports.push(event);
+    const processed = reports.filter(r => r.status !== 'DROPPED');
+    $('processed').textContent = processed.length;
+    $('slow').textContent = processed.filter(r => r.status === 'SLOW').length;
+    $('dropped').textContent = reports.length - processed.length;
+    $('average').textContent = processed.length ? fmt(processed.reduce((sum, r) => sum + r.total, 0) / processed.length) : '—';
+    $('progress').value = reports.length;
+    $('progress-label').textContent = `${reports.length} / 30 đã có kết quả`;
+    if (reports.length === 1) $('rows').replaceChildren();
+    const row = document.createElement('tr');
+    [event.id, event.queue === undefined ? '—' : fmt(event.queue), event.processing === undefined ? '—' : fmt(event.processing), event.total === undefined ? '—' : fmt(event.total), event.status].forEach(value => {
+      const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
+    });
+    row.lastChild.className = event.status;
+    $('rows').append(row);
+    draw();
+  }
+  if (event.type === 'done') {
+    finished = true;
+    $('created').textContent = event.created;
+    $('total-summary').textContent = `${fmt(event.total_avg)} / ${fmt(event.total_max)} ms`;
+    $('average').textContent = fmt(event.total_avg);
+    $('wait-summary').textContent = `${fmt(event.wait_avg)} / ${fmt(event.wait_max)} ms`;
+    $('queue-summary').textContent = `${event.queue_max} / 16`;
+    $('balance').textContent = `PASS · ${event.created} đã tạo = ${event.processed} xử lý + ${event.dropped} bị bỏ`;
+    $('summary-note').textContent = 'Hai luồng đã kết thúc. Trung bình chỉ tính report xử lý thành công.';
+    $('status').textContent = `Hoàn tất ${mode} · bộ đếm khớp`;
+    $('chart-note').textContent = `Kết quả ${mode}: ${event.slow} SLOW, ${event.dropped} DROPPED. Trục dọc tự điều chỉnh theo dữ liệu.`;
+  }
+}
+$('run').addEventListener('click', async () => {
+  reports = []; finished = false;
+  document.querySelectorAll('button').forEach(button => button.disabled = true);
+  ['processed', 'slow', 'dropped'].forEach(id => $(id).textContent = '0');
+  ['average', 'created', 'total-summary', 'wait-summary', 'queue-summary'].forEach(id => $(id).textContent = '—');
+  $('rows').replaceChildren(); $('log').textContent = ''; $('progress').value = 0;
+  $('progress-label').textContent = '0 / 30 đã có kết quả';
+  $('balance').textContent = 'Đang chờ kiểm tra bộ đếm.';
+  $('summary-note').textContent = 'Có sau khi producer và consumer kết thúc.';
+  $('chart-note').textContent = `Đang đo kịch bản ${mode}. Trục dọc tự điều chỉnh theo dữ liệu.`;
+  $('status').textContent = `Đang chạy ${mode}…`; draw();
+  try {
+    const response = await fetch(`/run/${mode}`, {method: 'POST'});
+    if (!response.ok) throw new Error(response.status === 409 ? 'Một mô phỏng đang chạy ở cửa sổ khác. Hãy thử lại sau.' : `Không chạy được demo (HTTP ${response.status}). Kiểm tra server và chạy make.`);
+    const reader = response.body.getReader(), decoder = new TextDecoder();
+    let pending = '';
+    for (;;) {
+      const {value, done} = await reader.read();
+      pending += decoder.decode(value, {stream: !done});
+      const lines = pending.split('\n'); pending = lines.pop();
+      for (const line of lines) if (line) handle(JSON.parse(line));
+      if (done) break;
+    }
+    if (pending.trim()) handle(JSON.parse(pending));
+    if (!finished) throw new Error('Kết nối kết thúc trước khi có tổng kết. Hãy chạy lại.');
+  } catch (error) {
+    $('status').textContent = `Lỗi: ${error.message}`;
+    $('balance').textContent = 'Lần chạy chưa hoàn tất; chưa xác nhận bộ đếm.';
+  } finally {
+    document.querySelectorAll('button').forEach(button => button.disabled = false);
+  }
+});
+draw();
+</script>
+</html>

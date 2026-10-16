@@ -1,8 +1,35 @@
 # Demo phát hiện Usage Report chậm khi tải cao
 
 Đây là **giả lập**, không phải UPF thật. Chương trình C dùng pthread trên
-Linux hoặc WSL, không dùng DPDK, PFCP, socket, database hay thư viện ngoài.
+Linux hoặc WSL. Phần mô phỏng C không dùng DPDK, PFCP, socket, database hay thư viện ngoài.
 “Gửi report” chỉ có nghĩa là hoàn thành xử lý giả lập, không gửi bản tin mạng.
+
+## Giao diện demo trên trình duyệt
+
+Giao diện bổ sung dùng Python 3 (thư viện chuẩn, không cần pip) để chạy chương
+trình C và truyền từng dòng kết quả về trình duyệt qua HTTP cục bộ. Không cần
+Node.js, CDN hay kết nối Internet. Logic mô phỏng và phép đo vẫn nằm trong C.
+
+```sh
+make ui
+```
+
+Trên máy Linux/WSL đang chạy lệnh, mở trình duyệt tại địa chỉ
+`http://localhost:8000`. Chọn **Normal** hoặc **Overload** rồi bấm **Chạy mô phỏng**.
+Trong WSL, có thể dùng trình duyệt Windows với localhost forwarding được bật.
+Nếu dùng workspace cloud, lệnh này chạy trên máy cloud; localhost trên máy cá
+nhân không trỏ đến workspace đó. Có thể clone repo về Linux/WSL để trình diễn.
+Nhấn Ctrl+C trong terminal để dừng web server.
+
+Giao diện có biểu đồ cột chồng (chờ queue + xử lý), đường ngưỡng 300 ms,
+bảng từng report, số SLOW/DROPPED, log gốc và tổng kết sau khi cả hai luồng kết
+thúc. Các bộ đếm trong lúc chạy chỉ phản ánh report đã có kết quả, không phải
+độ dài queue tức thời. Queue lớn nhất và số đã tạo được lấy từ tổng kết C.
+Trục dọc tự điều chỉnh; so sánh số ms khi chuyển kịch bản.
+
+Server chỉ lắng nghe loopback cổng 8000, cho chạy một mô phỏng tại một thời
+điểm và giới hạn mỗi lần chạy 20 giây. `server.py` và `ui.html` là hai file
+bổ sung cho giao diện; cách chạy bằng terminal bên dưới vẫn dùng được.
 
 ## Build và chạy
 

@@ -141,6 +141,8 @@ static void *consume(void *argument)
 
 int main(int argc, char **argv)
 {
+    /* Đẩy từng dòng ngay cả khi giao diện đọc stdout qua pipe. */
+    setvbuf(stdout, NULL, _IOLBF, 0);
     if (argc != 2 || (strcmp(argv[1], "normal") != 0 &&
                       strcmp(argv[1], "overload") != 0)) {
         fprintf(stderr, "Cách dùng: %s normal|overload\n", argv[0]);
