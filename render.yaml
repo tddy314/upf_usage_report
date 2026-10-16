@@ -1,0 +1,13 @@
+# Render Blueprint: build C trong Docker, chạy giao diện Python cùng container.
+services:
+  - type: web
+    name: upf-usage-report-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: APP_HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"

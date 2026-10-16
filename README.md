@@ -6,6 +6,45 @@ Linux hoặc WSL. Phần mô phỏng C không dùng DPDK, PFCP, socket, database
 
 ## Giao diện demo trên trình duyệt
 
+### Triển khai lên Render để mở qua Internet
+
+Repository có `render.yaml` (Blueprint) và `Dockerfile`. Docker build chương
+trình **C/pthread thật**, rồi chạy `server.py` và `ui.html`. Trình duyệt nhận
+số đo từ chương trình C trong container; không thay bằng mô phỏng JavaScript.
+
+1. Đăng nhập Render, chọn **New → Blueprint**.
+2. Kết nối repository GitHub `tddy314/upf_usage_report`, chọn nhánh `main`.
+   Nếu không thấy repo, cấp quyền cho Render truy cập repo này trong phần
+   cấu hình ứng dụng GitHub của Render.
+3. Render đọc `render.yaml`. Kiểm tra dịch vụ `upf-usage-report-demo` dùng
+   Docker và gói **Free**, rồi chọn **Deploy Blueprint** (hoặc nút xác nhận
+   tương ứng trong giao diện Render).
+4. Đợi build/deploy hoàn tất, mở URL HTTPS do Render cấp trên trang dịch vụ.
+   Chọn Normal hoặc Overload và bấm Chạy mô phỏng.
+
+Không cần database, secret hay nhập lệnh build/start riêng khi dùng Docker.
+Server đọc `PORT`, lắng nghe `0.0.0.0`, kiểm tra sức khỏe qua `/healthz`.
+`RENDER_EXTERNAL_URL` do Render cấp tự động được dùng để chấp nhận các lần
+bấm chạy từ đúng giao diện công khai. Nếu thêm tên miền riêng, cần cập nhật
+cấu hình origin; bản hiện tại dùng URL mặc định của Render.
+
+Gói miễn phí có thể ngủ khi không hoạt động; mở app và chạy thử trước khi
+quay video để chờ khởi động xong. Mỗi container chỉ chạy một kịch bản tại một
+thời điểm; người truy cập khác sẽ được báo đang bận. Mọi người có URL đều có
+thể dùng demo. Đây là server demo nhỏ, không có đăng nhập hay lưu dữ liệu.
+
+Có thể kiểm tra container trên máy có Docker:
+
+```sh
+docker build -t upf-usage-report-demo .
+docker run --rm -p 8000:10000 -e PORT=10000 \
+  -e RENDER_EXTERNAL_URL=http://localhost:8000 upf-usage-report-demo
+```
+
+Sau đó mở `http://localhost:8000`. Dừng container bằng Ctrl+C.
+
+### Chạy cục bộ
+
 Giao diện bổ sung dùng Python 3 (thư viện chuẩn, không cần pip) để chạy chương
 trình C và truyền từng dòng kết quả về trình duyệt qua HTTP cục bộ. Không cần
 Node.js, CDN hay kết nối Internet. Logic mô phỏng và phép đo vẫn nằm trong C.
